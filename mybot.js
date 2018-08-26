@@ -27,12 +27,15 @@ function refreshActivity() {
   let [guildCount, userCount] = calculateGuilds()
 
   client.user.setActivity(`${guildCount} servers, com ${userCount} users no total!`);
+  console.log(`Numero de servers atualizado! ${guildCount} servers, com ${userCount} users`)
 }
 
 client.on("ready", () => {
   console.log(`Pronto!`);
 
   refreshActivity()
+
+  setTimeout(refreshActivity, 36e+6)
 });
 
 client.on("message", (message) => {
@@ -74,16 +77,6 @@ client.on("message", (message) => {
       ${msg}`)
       break;
 
-      // case "setgame":
-      //   let activity = args[0]
-      //   config.lastActivity = activity
-
-      //   client.user.setActivity(`${activity}`)
-      //   message.reply(`Agora estou jogando ${activity}!`)
-
-      //   writecfg()
-      //   break;
-
     case "help":
       message.channel.send(`Toma os comando ae:
       ${prefix}ping - Ele reponde
@@ -92,8 +85,6 @@ client.on("message", (message) => {
   }
 
   console.log(`O usuario ${message.author.tag}(${message.author}) executou o comando ${command}, com ms = ${client.ping}`)
-
-  // console.log("Mensagem recebida, conteudo: " + message.content + ", do usuario: " + message.member.user.tag)
 
 });
 
