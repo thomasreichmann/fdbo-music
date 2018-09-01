@@ -8,6 +8,9 @@ const config = require("./config.json");
 
 const youtube = new Youtube(config.youtubeApiKey)
 
+let queue = [];
+let dispatcher;
+
 function writecfg() {
   fs.writeFile("./config.json", JSON.stringify(config), (err) => console.error);
 };
@@ -124,7 +127,7 @@ client.on("message", async message => {
           }
 
           const stream = yt(song.url, streamOptions)
-          let dispatcher = connection.playStream(stream)
+          return connection.playStream(stream)
 
           message.reply(`
         Tocando: ${song.name}
@@ -135,7 +138,117 @@ client.on("message", async message => {
           console.log(err)
         })
 
-        
+      break;
+
+    case "nplay":
+
+      if (!message.member.voiceChannel) return message.reply("Voce nao esta em um Voice channel"); // acaba o comando caso o usuario nao esteja em um voice channel
+
+      if (args.length == 0) return message.reply("Especifique um video ou playlist para ser tocado!");
+
+      message.member.voiceChannel.join().then(connection => {
+
+        let searchQuery = args.join(" ")
+
+        youtube.getPlaylist(args[0])
+          .then(playlist => {
+            playlist.getVideos(50).then(videos => {
+
+              // Indentificamos uma playlist, lidar com ela
+
+              let length = queue.length
+
+              videos.forEach(video => {
+                let song = {
+                  url: video.url,
+                  name: video.title
+                }
+                queue.push(song)
+                console.log(`Musica ${song.name} foi adicionada a queue`)
+              });
+
+              if (length == 0) {
+                play(connection)
+              }
+
+              console.log(`Uma playlist foi adicionada ${playlist.title}`)
+            }).catch(err => console.log(err))
+          })
+          .catch(() => {
+            // Nao temos uma playlist, logo ver se e um link para um unico video
+            youtube.getVideo(args[0])
+              .then(video => {
+                // O arg era um link, logo podemos adcionar o video a queue
+
+                let song = {
+                  url: video.url,
+                  name: video.title
+                }
+
+                if (queue.length == 0) {
+                  console.log(`Queue foi iniciada com a musia ${song.name}`)
+                  queue.push(song)
+                  play(connection)
+                } else {
+                  console.log(`A musiac ${song.name} foi adicionada na queue`)
+                  queue.push(song)
+                }
+
+                console.log(`Um link normal foi adicionado`)
+              })
+              .catch(() => {
+                // Nao temos um link, logo temos um argumento para pesquisa
+                youtube.searchVideos(searchQuery, 1).then(search => {
+                  let video = search[0]
+
+                  let song = {
+                    url: video.url,
+                    name: video.title
+                  }
+
+                  if (queue.length == 0) {
+                    console.log(`Queue foi iniciada com a musia ${song.name}`)
+
+                    queue.push(song)
+                    play(connection)
+                  } else {
+                    queue.push(song)
+                  }
+
+                  console.log(`Adicionado por search`)
+
+                })
+              })
+              .catch(err => console.log(err))
+          })
+      })
+      break;
+
+    case "stop":
+
+      if (client.voiceConnections.size == 0) break;
+
+      queue = []
+      message.channel.send("Parando a reproducao e saindo do canal de voz!").then(() => client.voice.connections.first().disconnect())
+        .catch(err => console.log(err))
+
+      break;
+
+    case "pause":
+
+      if (client.voiceConnections.size == 0 || !dispatcher) break;
+
+      dispatcher.pause()
+      message.channel.send("Pausando a musica!")
+
+      break;
+
+    case "resume":
+
+      if (client.voiceConnections.size == 0 || !dispatcher) break;
+
+      dispatcher.resume()
+      message.channel.send("Resumindo a musica!")
 
       break;
 
@@ -149,5 +262,24 @@ client.on("message", async message => {
   console.log(`O usuario ${message.author.tag}(${message.author}) executou o comando ${command}, com ms = ${client.ping}`)
 
 });
+
+function play(connection) {
+
+  if (queue.length == 0) connection.disconnect()
+
+  dispatcher = connection.playStream(yt(queue[0].url, {
+    filter: 'audioonly'
+  }), {
+    bitrate: 'auto'
+  })
+
+  dispatcher.on('end', reason => {
+    if (queue.length == 0) return console.log("Saindo do canal de voz")
+    console.log(`Musica ${queue[0].name} foi removida da queue`)
+    queue.shift();
+
+    play(connection)
+  })
+}
 
 client.login(config.token)
