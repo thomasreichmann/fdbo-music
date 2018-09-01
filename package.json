@@ -12,6 +12,13 @@
   "dependencies": {
     "bufferutil": "^3.0.5",
     "discord.js": "^11.4.2",
-    "erlpack": "github:discordapp/erlpack"
+    "erlpack": "github:discordapp/erlpack",
+    "ffmpeg": "0.0.4",
+    "libsodium-wrappers": "^0.7.3",
+    "node-opus": "^0.2.9",
+    "opusscript": "0.0.6",
+    "simple-youtube-api": "^5.0.2",
+    "uws": "^99.0.0",
+    "ytdl-core": "^0.24.0"
   }
 }
