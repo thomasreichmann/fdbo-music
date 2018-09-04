@@ -1,8 +1,12 @@
-const Discord = require("discord.js");
-const client = new Discord.Client();
+const {
+  Client,
+  RichEmbed
+} = require("discord.js");
+const client = new Client();
 const yt = require('ytdl-core')
 const Youtube = require('simple-youtube-api')
 const fs = require("fs");
+const plays = require("./play")
 
 const config = require("./config.json");
 
@@ -10,6 +14,14 @@ const youtube = new Youtube(config.youtubeApiKey)
 
 let queue = [];
 let dispatcher;
+
+/*
+TODO:
+
+Skip
+Queue (mostrar as musicas ou as 10 primeiras da queue atual, talvez ate com umas paginas)
+Transformar a maior parte dos console.log em message.send, para dar feedback ao usuario
+*/
 
 function writecfg() {
   fs.writeFile("./config.json", JSON.stringify(config), (err) => console.error);
@@ -110,38 +122,6 @@ client.on("message", async message => {
 
     case "play":
 
-      let channel
-      channel = message.member.voiceChannel
-
-      let video = await youtube.getVideo(args[0]).catch(err => console.log(err))
-
-      channel.join().then(connection => {
-
-          let song = {
-            url: video.url,
-            name: video.title
-          }
-
-          let streamOptions = {
-            volume: 1,
-          }
-
-          const stream = yt(song.url, streamOptions)
-          return connection.playStream(stream)
-
-          message.reply(`
-        Tocando: ${song.name}
-        URL: ${song.url}
-        `)
-        })
-        .catch(err => {
-          console.log(err)
-        })
-
-      break;
-
-    case "nplay":
-
       if (!message.member.voiceChannel) return message.reply("Voce nao esta em um Voice channel"); // acaba o comando caso o usuario nao esteja em um voice channel
 
       if (args.length == 0) return message.reply("Especifique um video ou playlist para ser tocado!");
@@ -223,7 +203,7 @@ client.on("message", async message => {
           })
       })
       break;
-
+      
     case "stop":
 
       if (client.voiceConnections.size == 0) break;
@@ -252,10 +232,42 @@ client.on("message", async message => {
 
       break;
 
+    case "skip":
+
+      if (queue.length == 0) break;
+
+      dispatcher.end()
+
+      break;
+
+    case "embed":
+
+      const embeded = new RichEmbed()
+        // Set the title of the field
+        .setTitle('A slick little embed')
+        // Set the color of the embed
+        .setColor(0xFF0000)
+        // Set the main content of the embed
+        .setDescription('Hello, this is a slick embed!');
+
+      embeded.setAuthor("Test Name");
+      embeded.addBlankField()
+
+      embeded.addField("Teste Field", "Teste Value");
+      embeded.addBlankField(true)
+      embeded.setURL("https://vignette.wikia.nocookie.net/leagueoflegends/images/a/ad/Jinx_Poro.jpg/revision/latest?cb=20150220155035")
+      // Send the embed to the same channel as the message
+      message.channel.send(embeded);
+
+      break;
+
     case "help":
-      message.channel.send(`Toma os comando ae:
-      ${prefix}ping - Ele reponde
-      ${prefix}prefix (novo prefixo) - Muda o prefixo`)
+      // message.channel.send(`Toma os comando ae:
+      // ${prefix}ping - Ele reponde
+      // ${prefix}prefix (novo prefixo) - Muda o prefixo`)
+
+      const helpEmbed = new RichEmbed()
+        .setAuthor('test')
 
   }
 
